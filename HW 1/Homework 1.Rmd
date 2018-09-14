@@ -1,0 +1,148 @@
+---
+title: "Stats C161/C261 - Homework 1"
+author: "Kitu Komya"
+date: "April 17, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem 3
+
+## part a
+```{r}
+# set seed
+set.seed(2018)
+
+# initialize 1000 x and y datapoints
+x <- c(1:1000)
+y <- numeric(1000)
+
+# create slope coefficients
+B0 <- rnorm(n = 1000, mean = 0, sd = 75) # wi
+
+# create the 1000 y datapoints
+y <- x + B0
+
+# merge variables into a dataframe
+df <- data.frame(x, y)
+```
+
+## part b
+```{r}
+# divide into training and testing set
+train <- df[sample(nrow(df), 500), ]
+test <- df[!df$x %in% train$x, ]
+```
+
+## part c
+```{r}
+# linear regression on training
+linear <- lm(formula = y ~ x, data = train)
+
+# compute error on testing set: MSE is 6138.18
+mean((test$y - predict.lm(linear, test))^2)
+```
+
+## part d
+```{r}
+# quadratic regression on training
+quadratic <- lm(formula = y ~ poly(x, 2), data = train)
+
+# compute error on testing set: MSE is 6100.209
+mean((test$y - predict.lm(quadratic, test))^2)
+
+# cubic regression on training
+cubic <- lm(formula = y ~ poly(x, 3), data = train)
+
+# compute error on testing set: MSE is 6201.891
+mean((test$y - predict.lm(cubic, test))^2)
+```
+
+## part e
+```{r}
+### re-doing steps for flow_data.csv ###
+flow <- read.csv(file = "flow_data.csv")
+
+# divide into training and testing set
+train <- flow[sample(nrow(flow), 50), ]
+test <- flow[!flow$X %in% train$X, ]
+
+# linear regression on training
+linear <- lm(formula = flow ~ radius, data = train)
+
+# compute error on testing set: MSE is 0.1831462
+mean((test$flow - predict.lm(linear, test))^2)
+
+# quadratic regression on training
+quadratic <- lm(formula = flow ~ poly(radius, 2), data = train)
+
+# compute error on testing set: MSE is 0.06036196
+mean((test$flow - predict.lm(quadratic, test))^2)
+
+# cubic regression on training
+cubic <- lm(formula = flow ~ poly(radius, 3), data = train)
+
+# compute error on testing set: MSE is 0.06608234
+mean((test$flow - predict.lm(cubic, test))^2)
+```
+The quadratic model fits the data the best, since its testing MSE is the lowest.
+
+## part f
+Yes, this makes intuitive sense since the volume of any cylinder is proportionate to/varies with r squared. Thus, a quadratic relationship makes sense to our data. This homework helps us to realize that whenever we choose models, we should allow the physical principles to help us in making our model selection in order to avoid underfitting and overfitting.
+
+# Problem 4
+
+## part c
+```{r}
+# generate 10^4 samples total. 7000 for y = 0 and 3000 for y = 1
+y0 <- rnorm(n = 7000, mean = 0, sd = sqrt(0.25))
+y1 <- rnorm(n = 3000, mean = 1, sd = sqrt(0.25))
+```
+
+## part d
+```{r}
+# run ML classifier and find error rate: 0.1585
+(length(y0) - length(which(y0 < 0.5)) + length(which(y1 < 0.5)))/10000
+
+# run MAP classifier and find error rate: 0.1512
+(length(y0) - length(which(y0 < 0.553)) + length(which(y1 < 0.553)))/10000
+```
+ML has an error rate of 0.1585, while MAP has an error rate of 0.1512. The error rate is calculated summing the number of missed detections and number of false alarms. These numbers lead us to believe that MAP classified the data better than ML. 
+
+## part e
+```{r}
+# plot error rates from between 0.2 and 0.7 arbitrarily chosen
+x <- seq(0.1, 0.9, by = 0.05)
+y <- numeric(length(x))
+
+# add in error rate for each step
+for (i in 1:17)
+{
+  y[i] <- (length(y0) - length(which(y0 < x[i])) + length(which(y1 < x[i])))/10000
+}
+
+# create dataframe
+xy <- data.frame(x, y)
+
+# add MAP classifier (ML already added in)
+ML <- data.frame(0.553, 0.1512)
+names(ML) <- c("x", "y")
+xy <- rbind(xy, ML)
+
+# add colors
+xy$color <- "black"
+xy$color <- ifelse(xy$x == 0.500, "red", xy$color) # for ML classifier
+xy$color <- ifelse(xy$x == 0.553, "blue", xy$color) # for MAP classifier
+
+# plot the rates
+plot(xy$x, xy$y, main = "Visualizing Error Rate with Different Decision Thresholds", xlab = "Decision Threshold", ylab = "Error Rate", pch = 19, col = xy$color)
+legend("right", legend = c("MAP Classifier", "ML Classifier"), 
+       lty = c(1,1), lwd = c(2, 2), col = c("blue", "red"))
+```
+
+In visualizing the error rates among varying decision thresholds, we see that the ML and MAP classifiers are close to the minima, but not entirely there. It seems like a decision threshold near 0.7 will work best with our data. In that case, the MAP classifier still did a better job than the ML classifier.
