@@ -1,0 +1,2 @@
+# HW 4
+Homework 4 consisted of two labs: logistic regression for gene expression data as well as neural networks for music classification. In the former, we handled missing data, performed multi-class logistic classification, and used L1-regularization. In the latter, we extracted simple features from audio files, built a simple neural network, and optimized the learning rate of the neural network by recording the loss and accuracy history.
