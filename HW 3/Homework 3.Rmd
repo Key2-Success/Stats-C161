@@ -1,0 +1,148 @@
+---
+title: "Homework 3"
+author: "Kitu Komya"
+date: "May 22, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+## part a
+```{r}
+set.seed(2018)
+
+# sample from two mixed models
+x <- rnorm(n = 60, mean = -2, sd = 1.5)
+x <- append(x, rnorm(n = 40, mean = 3, sd = 1.5))
+```
+
+## part b
+```{r}
+# estimating p-hat(x)
+density(x, kernel = "gaussian", width = 0.5)
+
+# plot p-hat(x) and p(x)
+plot(density(x, kernel = "gaussian", width = 0.5), main = "p-hat(x) vs p(x): KDE with width = 0.5")
+lines(density(x), col = "red")
+legend("topright", legend=c("p-hat(x)", "p(x)"),
+       col = c("black", "red"), lty = 1, cex = 0.8)
+```
+
+## part c
+```{r}
+# h = 2
+# estimating p-hat(x)
+density(x, kernel = "gaussian", width = 2)
+
+# plot p-hat(x) and p(x)
+plot(density(x, kernel = "gaussian", width = 2), main = "p-hat(x) vs p(x): KDE with width = 2")
+lines(density(x), col = "red")
+legend("topright", legend=c("p-hat(x)", "p(x)"),
+       col = c("black", "red"), lty = 1, cex = 0.8)
+
+
+# h = 0.1
+# estimating p-hat(x)
+density(x, kernel = "gaussian", width = 0.1)
+
+# plot p-hat(x) and p(x)
+plot(density(x, kernel = "gaussian", width = 0.1), main = "p-hat(x) vs p(x): KDE with width = 0.1")
+lines(density(x), col = "red")
+legend("topright", legend=c("p-hat(x)", "p(x)"),
+       col = c("black", "red"), lty = 1, cex = 0.8)
+```
+
+When width = 2, the estimate is under-fit, and when width = 0.1, the estimate is over-fit. This makes intuitive sence since larger widths makes an average over more samples and thus we would expect it to be more "smooth" and under-fit by not capturing detailed variations in the true density. 
+
+# Question 3
+## part a
+```{r}
+set.seed(2018)
+
+# covariance matrices
+S0 <- matrix(c(0.5, 0, 0, 0.5), nrow = 2, ncol = 2)
+S1 <- matrix(c(0.5, 0, 0, 1), nrow = 2, ncol = 2)
+S2 <- matrix(c(0.5, -0.25, -0.25, 0.5), nrow = 2, ncol = 2)
+
+library(mvtnorm)
+
+# generate data
+mew0 <- rmvnorm(n = 300, mean = c(0, 0), sigma = S0)
+mew1 <- rmvnorm(n = 300, mean = c(1, 2), sigma = S1)
+mew2 <- rmvnorm(n = 300, mean = c(1.5, 0), sigma = S2)
+
+# put into dataframe
+data <- data.frame(rbind(mew0, mew1, mew2))
+
+# add class
+data$y <- rep(c(0, 1, 2), each = 300)
+
+# plot the points
+library(ggplot2)
+ggplot(data, aes(x = X1, y = X2, col = factor(y))) + geom_point() + 
+  ggtitle("Generated Samples by Class")
+```
+
+## part b and part c
+```{r}
+# training and testing dataframes
+train <- data[sample(nrow(data), 540), ]
+test <- data[!data$X1 %in% train$X1, ]
+
+library(class)
+
+# test points
+x0 <- c(-3, 3, "")
+x1 <- c(-2, 3, "")
+
+# bind them to data
+train <- rbind(train, x0)
+train <- rbind(train, x1)
+
+# make numeric
+train$X1 <- as.numeric(train$X1)
+train$X2 <- as.numeric(train$X2)
+
+# KNN classification
+train$knnFit2 <- knn(train = train[ , 1:2], test = train[ , 1:2], cl = train[ , 3], k = 2)
+train$knnFit5 <- knn(train = train[ , 1:2], test = train[ , 1:2], cl = train[ , 3], k = 5)
+train$knnFit15 <- knn(train = train[ , 1:2], test = train[ , 1:2], cl = train[ , 3], k = 15)
+
+# classification
+train[541:542, ]
+
+# plot the points
+ggplot(train, aes(x = X1, y = X2, col = factor(knnFit2))) + geom_point() + 
+  ggtitle("KNN: k = 2")
+
+ggplot(train, aes(x = X1, y = X2, col = factor(knnFit5))) + geom_point() + 
+  ggtitle("KNN: k = 5")
+
+ggplot(train, aes(x = X1, y = X2, col = factor(knnFit15))) + geom_point() + 
+  ggtitle("KNN: k = 15")
+
+# cross validation
+library(caret)
+library(e1071)
+grid = expand.grid(k = c(2, 5, 15))
+train(y ~ ., method = "knn", data = train, 
+              trControl = trainControl(method = "cv", number = 2, search = "grid"), 
+              tuneGrid = grid)
+
+# K = 5 is best model since it has highest accuracy and lowest MSE.
+
+# 2 to 100
+grid = expand.grid(k = seq(2:100))
+train(y ~ ., method = "knn", data = train, 
+              trControl = trainControl(method = "cv", number = 2, search = "grid"), 
+              tuneGrid = grid)
+
+# K = 9 is best model with highest accuracy and lowest MSE.
+
+```
+
